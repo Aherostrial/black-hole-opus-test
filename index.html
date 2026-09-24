@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anatomy of a Black Hole</title>
+<meta name="description" content="An interactive, ray-traced exhibit of a spinning black hole: lensing, Doppler beaming, time dilation and a photon lab.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/exhibit.css">
+</head>
+<body>
+<canvas id="view" aria-label="Live ray-traced view of a spinning black hole. Drag to orbit, scroll to zoom."></canvas>
+<svg id="leaders" aria-hidden="true"></svg>
+<div id="labels" aria-hidden="true"></div>
+
+<header class="placard title-card" id="titleCard">
+  <p class="eyebrow">Interactive exhibit · General relativity</p>
+  <h1>Anatomy of a <em>Black Hole</em></h1>
+  <p class="dek">Every pixel is a ray of light traced backward through the curved spacetime of a spinning black hole.</p>
+</header>
+
+<section class="placard explainer" id="explainer" aria-live="polite">
+  <div class="fadeable">
+    <p class="eyebrow" id="exEyebrow">What you are looking at</p>
+    <h2 id="exTitle">A black hole, lit by its own meal</h2>
+    <p class="body" id="exBody"></p>
+    <dl class="facts" id="exFacts"></dl>
+  </div>
+</section>
+
+<aside class="placard console" id="console" aria-label="Exhibit controls">
+  <div class="console-head">
+    <p class="eyebrow">Controls</p>
+    <button class="btn console-toggle" id="consoleToggle" aria-expanded="true">Hide</button>
+  </div>
+  <div class="console-body">
+    <div class="mode-switch" role="radiogroup" aria-label="Rendering mode">
+      <button role="radio" data-mode="edu" aria-checked="true" id="modeEdu"><b>Educational clarity</b><span>Labels, legible colours</span></button>
+      <button role="radio" data-mode="real" aria-checked="false" id="modeReal"><b>Physically realistic</b><span>True beaming &amp; blackbody light</span></button>
+    </div>
+
+    <section class="group" aria-labelledby="gHole">
+      <h3 id="gHole">The black hole</h3>
+      <div class="control">
+        <div class="control-row"><label for="mass">Mass</label><output id="massOut" for="mass"></output></div>
+        <input type="range" id="mass" min="0.5" max="10.5" step="0.01">
+        <div class="chips" role="group" aria-label="Real black holes">
+          <button class="chip" data-mass="21.2" data-key="cyg">Cygnus X-1</button>
+          <button class="chip" data-mass="62" data-key="gw">GW150914</button>
+          <button class="chip" data-mass="4.3e6" data-key="sgr">Sagittarius A*</button>
+          <button class="chip" data-mass="6.5e9" data-key="m87">M87*</button>
+        </div>
+      </div>
+      <div class="control">
+        <div class="control-row"><label for="spin">Spin</label><output id="spinOut" for="spin"></output></div>
+        <input type="range" id="spin" class="centered" min="-0.998" max="0.998" step="0.001">
+        <div class="scale-ends"><span>against the disk</span><span>none</span><span>with the disk</span></div>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="gView">
+      <h3 id="gView">Your view</h3>
+      <div class="control">
+        <div class="control-row"><label for="incl">Viewing angle</label><output id="inclOut" for="incl"></output></div>
+        <input type="range" id="incl" min="1" max="179" step="0.5">
+        <div class="scale-ends"><span>from above</span><span>edge-on</span><span>from below</span></div>
+        <p class="hint">Drag the scene to orbit freely. Scroll or pinch to zoom.</p>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="gDisk">
+      <h3 id="gDisk">The accretion disk</h3>
+      <div class="control">
+        <div class="control-row"><label for="mdot">Brightness</label><output id="mdotOut" for="mdot"></output></div>
+        <input type="range" id="mdot" min="-3" max="0" step="0.01">
+        <p class="hint">Set by how fast gas is fed in, as a share of the Eddington limit.</p>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="gTime">
+      <h3 id="gTime">Time</h3>
+      <div class="control">
+        <div class="control-row"><label for="speed">Simulation speed</label><output id="speedOut" for="speed"></output></div>
+        <input type="range" id="speed" min="0" max="4" step="0.05">
+        <div class="inline-btns"><button class="btn" id="pauseBtn" aria-pressed="false">Pause</button><button class="btn" id="resetBtn">Reset view</button></div>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="gShow">
+      <h3 id="gShow">Show</h3>
+      <div class="switches">
+        <button class="switch" role="switch" aria-checked="true" id="swLabels">Labels</button>
+        <button class="switch" role="switch" aria-checked="false" id="swShell">Photon sphere</button>
+        <button class="switch" role="switch" aria-checked="false" id="swGrid">Lensing grid</button>
+        <button class="switch" role="switch" aria-checked="false" id="swOrbit">Slow orbit</button>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="gExp">
+      <h3 id="gExp">Experiments</h3>
+      <button class="exp-btn" id="probeBtn" aria-pressed="false">
+        <svg viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="17" fill="none" stroke="currentColor" stroke-opacity=".35"/><circle cx="19" cy="19" r="11" fill="none" stroke="#7fd4ff"/><path d="M19 12v7l5 3" stroke="#7fd4ff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+        <span><b>Drop a clock into the hole</b><span>Watch time slow, light redden, and a fall that never ends.</span></span>
+      </button>
+      <button class="exp-btn" id="labBtn" aria-pressed="false">
+        <svg viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="5" fill="#000" stroke="currentColor" stroke-opacity=".5"/><circle cx="19" cy="19" r="9" fill="none" stroke="#7fd4ff" stroke-dasharray="2 2"/><path d="M2 27 C 14 24, 25 26, 26 18 C 27 11, 17 10, 15 17" fill="none" stroke="#f0a35e" stroke-width="1.6" stroke-linecap="round"/><circle cx="2.5" cy="27" r="1.8" fill="#f0a35e"/></svg>
+        <span><b>Photon lab</b><span>Launch single rays of light and watch gravity steer them.</span></span>
+      </button>
+    </section>
+
+    <section class="group" aria-labelledby="gData">
+      <h3 id="gData">Specimen data</h3>
+      <table class="data-table" id="dataTable"><tbody></tbody></table>
+    </section>
+  </div>
+</aside>
+
+<section class="placard hud" id="probeHud" hidden aria-live="polite">
+  <div class="hud-head">
+    <p class="eyebrow">Experiment · A clock falls in</p>
+    <button class="hud-close" id="probeClose" aria-label="End the clock experiment">×</button>
+  </div>
+  <div class="clocks">
+    <div class="clock"><p class="eyebrow">Your clock</p><span class="face" id="clockMine">0</span><small>since you let go</small></div>
+    <div class="clock theirs"><p class="eyebrow">The falling clock</p><span class="face" id="clockTheirs">0</span><small>as its light reaches you</small></div>
+  </div>
+  <div class="meter" aria-hidden="true"><i id="probeMeter"></i></div>
+  <p class="probe-status" id="probeStatus"></p>
+</section>
+
+<section class="placard dock" id="labDock" hidden aria-label="Photon lab">
+  <div class="dock-head">
+    <div><p class="eyebrow">Experiment · Photon lab</p><h2>Launch light</h2></div>
+    <button class="hud-close" id="labClose" aria-label="Close the photon lab">×</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="labAim" aria-pressed="true" title="Drag on the plane to aim, release to fire">Aim &amp; fire</button>
+    <button class="btn" id="labBeam">Beam of light</button>
+    <button class="btn" id="labGraze">Skim the photon sphere</button>
+    <button class="btn" id="labShell" aria-pressed="false">Photon shell</button>
+    <button class="btn" id="labClear">Clear</button>
+  </div>
+  <label class="tilt" for="labTilt">Tilt out of the disk plane <input type="range" id="labTilt" min="0" max="75" step="1" value="0"><output id="labTiltOut">0°</output></label>
+  <p class="readout" id="labReadout">Drag on the glowing plane to aim a photon. Release to fire it.</p>
+  <div class="legend"><span><i style="background:#7fd4ff"></i>escaped</span><span><i style="background:#ff7a5c"></i>fell in</span><span><i style="background:#c7a6ff"></i>still orbiting</span><span><i style="background:#f0a35e"></i>photon sphere</span></div>
+</section>
+
+<nav class="corner" id="cornerNav" aria-label="View">
+  <button class="icon-btn" id="presentBtn" title="Presenter mode: hide the interface (H)" aria-label="Presenter mode">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+  </button>
+  <button class="icon-btn hide-when-presenting" id="fsBtn" title="Full screen (F)" aria-label="Full screen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+  <button class="icon-btn hide-when-presenting" id="helpBtn" title="About this exhibit (?)" aria-label="About this exhibit">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.6M12 17h.01"/></svg>
+  </button>
+</nav>
+<div class="perf" id="perf"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<div class="modal" id="help" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <p class="eyebrow">About this exhibit</p>
+    <h2 id="helpTitle">How the picture is made</h2>
+    <p>Nothing here is a painted effect. For every pixel, the program follows a ray of light backward from the camera through the curved spacetime of a spinning (Kerr) black hole, solving Einstein's equations of motion for light step by step, about forty times per pixel per frame. Where the ray meets the disk, it reads the gas's temperature and motion; where it escapes, it reads the star field. Lensing, the shadow, the photon ring and the lifted far side of the disk all come out of that calculation on their own.</p>
+    <h3>Physics included</h3>
+    <ul>
+      <li>Exact light paths around a spinning black hole, including frame dragging (Kerr metric, Kerr–Schild coordinates, 4th-order Runge–Kutta).</li>
+      <li>A thin disk whose inner edge sits at the innermost stable circular orbit, with the Novikov–Thorne temperature profile.</li>
+      <li>Doppler shift and beaming, gravitational redshift and light-travel delay for every ray.</li>
+      <li>The falling clock follows a true free-fall path. What you see of it is computed from the moment its light left it.</li>
+      <li>The photon lab integrates each photon forward in time with the same equations.</li>
+    </ul>
+    <h3>Simplifications</h3>
+    <ul>
+      <li>The disk is infinitely thin and glows like a blackbody. Real disks are puffy, magnetised and partly transparent, and many (including M87* and Sagittarius A*) are too faint to look like this.</li>
+      <li>In realistic mode, brightness counts all wavelengths. Hue is the blackbody colour of the shifted temperature, scaled so the hottest gas looks white. Real disks are hundreds of thousands to millions of kelvin and would look blue-white to the eye.</li>
+      <li>The camera hovers in place. No jets, no light reflected back onto the disk, no quantum effects.</li>
+    </ul>
+    <h3>Keys</h3>
+    <div class="keys">
+      <span><kbd>Drag</kbd> orbit the camera</span>
+      <span><kbd>Scroll</kbd> zoom</span>
+      <span><kbd>Space</kbd> pause time</span>
+      <span><kbd>M</kbd> switch mode</span>
+      <span><kbd>H</kbd> presenter mode</span>
+      <span><kbd>F</kbd> full screen</span>
+      <span><kbd>C</kbd> drop a clock</span>
+      <span><kbd>P</kbd> photon lab</span>
+    </div>
+    <p style="margin-top:18px"><button class="btn" id="helpClose">Back to the exhibit</button></p>
+  </div>
+</div>
+
+<div id="fatal" hidden><div><h2 style="font-family:var(--serif);font-weight:400">This exhibit needs WebGL 2</h2><p></p></div></div>
+
+<script src="js/physics.js"></script>
+<script src="js/shaders.js"></script>
+<script src="js/glkit.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/format.js"></script>
+<script src="js/explain.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/lab.js"></script>
+<script src="js/probe.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

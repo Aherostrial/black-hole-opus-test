@@ -9,6 +9,7 @@ calculation. None of them are painted on.
 
 ## Open it
 
+- **Live:** <https://aherostrial.github.io/black-hole-opus-test/> (GitHub Pages, served from the `gh-pages` branch).
 - **Double-click `dist/black-hole-exhibit.html`.** It is one self-contained file that works offline. The typefaces load from Google Fonts when you're online.
 - Or serve the folder: `npm start`, then open <http://localhost:8080>.
 
@@ -73,6 +74,17 @@ Keys: `Space` pause · `M` switch mode · `H` presenter mode (hides the interfac
 Simplifications: the disk is infinitely thin and has no radiative transfer. There are no jets, no light
 returning to the disk, and no polarisation. In realistic mode the hue is rescaled so the hottest gas looks
 white; real disks are 10⁵–10⁷ K and would look blue-white to the eye.
+
+## Updating the live site
+
+GitHub Pages serves the `gh-pages` branch, which holds only `index.html`, `css/`, `js/` and `.nojekyll`.
+After changing the exhibit, copy those onto that branch and push:
+
+```
+git worktree add ../pages gh-pages
+cp -r index.html css js ../pages/ && cd ../pages
+git add -A && git commit -m "Update site" && git push && cd - && git worktree remove ../pages
+```
 
 ## Tests
 
